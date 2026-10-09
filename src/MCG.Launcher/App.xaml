@@ -1,0 +1,32 @@
+<Application x:Class="MCG.Launcher.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    RequestedTheme="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries><controls:XamlControlsResources /></ResourceDictionary.MergedDictionaries>
+      <Color x:Key="SystemAccentColor">#A9E966</Color>
+      <SolidColorBrush x:Key="AccentBrush" Color="#A9E966" />
+      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#111315" />
+      <SolidColorBrush x:Key="PanelBrush" Color="#191C1F" />
+      <SolidColorBrush x:Key="MutedBrush" Color="#A1A7AE" />
+      <SolidColorBrush x:Key="DividerBrush" Color="#30353B" />
+      <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="#14200B" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,10" />
+      </Style>
+      <Style x:Key="SidebarButtonStyle" TargetType="Button">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="14,12" />
+      </Style>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

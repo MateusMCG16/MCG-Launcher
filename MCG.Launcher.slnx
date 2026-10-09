@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/MCG.Launcher.Core/MCG.Launcher.Core.csproj" />
+  <Project Path="src/MCG.Launcher/MCG.Launcher.csproj" />
+  <Project Path="tests/MCG.Launcher.Core.Tests/MCG.Launcher.Core.Tests.csproj" />
+</Solution>

@@ -1,0 +1,145 @@
+<Window x:Class="MCG.Launcher.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:MCG.Launcher.ViewModels"
+    Title="MCG Launcher">
+  <Grid x:Name="Root" Background="{StaticResource AppBackgroundBrush}" Loaded="Root_Loaded">
+    <Grid.RowDefinitions><RowDefinition Height="48" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <Grid x:Name="TitleBar" Background="{StaticResource AppBackgroundBrush}" Padding="20,0,140,0">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <FontIcon Glyph="&#xE7FC;" FontSize="16" Foreground="{StaticResource AccentBrush}" />
+        <TextBlock Text="MCG LAUNCHER" FontSize="12" FontWeight="SemiBold" CharacterSpacing="120" />
+      </StackPanel>
+    </Grid>
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="208" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,1,0">
+        <Grid Padding="16,28,16,20">
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <StackPanel Spacing="6">
+            <TextBlock Text="SEU ESPAÇO" Foreground="{StaticResource MutedBrush}" FontSize="11" CharacterSpacing="100" Margin="14,0,0,16" />
+            <Button x:Name="LibraryNav" Style="{StaticResource SidebarButtonStyle}" Click="Library_Click">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE80A;" FontSize="18" /><TextBlock Text="Biblioteca" /></StackPanel>
+            </Button>
+            <Button x:Name="FavoritesNav" Style="{StaticResource SidebarButtonStyle}" Click="Favorites_Click">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE734;" FontSize="18" /><TextBlock Text="Favoritos" /></StackPanel>
+            </Button>
+            <Button x:Name="RecentNav" Style="{StaticResource SidebarButtonStyle}" Click="Recent_Click">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE823;" FontSize="18" /><TextBlock Text="Recentes" /></StackPanel>
+            </Button>
+            <Button x:Name="LocalImagesButton" Style="{StaticResource SidebarButtonStyle}" Click="LocalImages_Click" ToolTipService.ToolTip="Procurar capas, logos e ícones já presentes no PC">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xEB9F;" FontSize="18" /><TextBlock Text="Imagens locais" /></StackPanel>
+            </Button>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Spacing="16">
+            <Border Padding="14" Background="#22292A" CornerRadius="10">
+              <StackPanel Spacing="6"><TextBlock Text="Tudo no seu PC." FontWeight="SemiBold" FontSize="13" /><TextBlock Text="Sua biblioteca funciona offline." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+            </Border>
+            <Button Style="{StaticResource SidebarButtonStyle}" Click="About_Click">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE946;" FontSize="16" /><TextBlock Text="Sobre o launcher" FontSize="12" /></StackPanel>
+            </Button>
+            <Button x:Name="SettingsButton" Style="{StaticResource SidebarButtonStyle}" Click="Settings_Click">
+              <StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE713;" FontSize="16" /><TextBlock Text="Configurações" FontSize="12" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Grid Grid.Column="1" Padding="32,28,32,20" RowSpacing="20">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+          <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid ColumnSpacing="16">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+          <StackPanel Spacing="6">
+            <TextBlock x:Name="PageTitle" Text="Sua biblioteca" FontSize="30" FontWeight="SemiBold" />
+            <TextBlock x:Name="PageSubtitle" Text="Todos os seus jogos. Um lugar para começar." Foreground="{StaticResource MutedBrush}" FontSize="14" />
+          </StackPanel>
+          <Button x:Name="AddGameButton" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource PrimaryButtonStyle}" Click="AddGame_Click">
+            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="14" /><TextBlock Text="Adicionar jogo" /></StackPanel>
+          </Button>
+        </Grid>
+        <Grid Grid.Row="1" ColumnSpacing="12">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /><ColumnDefinition Width="170" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+          <AutoSuggestBox x:Name="SearchBox" PlaceholderText="Buscar na biblioteca" TextChanged="Search_TextChanged" AutomationProperties.Name="Buscar jogos">
+            <AutoSuggestBox.QueryIcon><SymbolIcon Symbol="Find" /></AutoSuggestBox.QueryIcon>
+          </AutoSuggestBox>
+          <ComboBox x:Name="SourceFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="Filter_Changed" AutomationProperties.Name="Filtrar plataforma">
+            <ComboBoxItem Content="Todas as plataformas" /><ComboBoxItem Content="Steam" /><ComboBoxItem Content="Epic Games" /><ComboBoxItem Content="Manuais" />
+          </ComboBox>
+          <ComboBox x:Name="SortOrder" Grid.Column="2" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="Filter_Changed" AutomationProperties.Name="Ordenar jogos">
+            <ComboBoxItem Content="Nome: A–Z" /><ComboBoxItem Content="Última abertura" /><ComboBoxItem Content="Adicionados agora" />
+          </ComboBox>
+          <Button x:Name="DetectButton" Grid.Column="3" Click="Detect_Click" ToolTipService.ToolTip="Procurar jogos instalados na Steam e Epic Games" AutomationProperties.Name="Detectar jogos instalados">
+            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="14" /><TextBlock Text="Detectar jogos" /></StackPanel>
+          </Button>
+        </Grid>
+        <StackPanel Grid.Row="2" Spacing="8">
+          <InfoBar x:Name="Notice" IsOpen="False" IsClosable="True" />
+          <ProgressBar x:Name="ScanProgress" IsIndeterminate="True" Visibility="Collapsed" AutomationProperties.Name="Atualizando biblioteca" />
+        </StackPanel>
+        <Grid Grid.Row="3">
+          <GridView x:Name="GamesGrid" ItemsSource="{x:Bind Cards}" SelectionMode="None" IsItemClickEnabled="False"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,0,0,8" AutomationProperties.Name="Biblioteca de jogos">
+            <GridView.ItemContainerStyle>
+              <Style TargetType="GridViewItem">
+                <Setter Property="Margin" Value="0,0,16,16" /><Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" />
+              </Style>
+            </GridView.ItemContainerStyle>
+            <GridView.ItemTemplate>
+              <DataTemplate x:DataType="vm:GameCard">
+                <Border Width="242" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="1" CornerRadius="12">
+                  <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="142" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Border Background="{x:Bind ArtworkBrush}" CornerRadius="11,11,0,0">
+                      <Grid>
+                        <TextBlock Text="{x:Bind Initials}" Visibility="{x:Bind InitialsVisibility, Mode=OneWay}" FontSize="44" FontWeight="Bold" Foreground="#66FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="{x:Bind CoverStretch, Mode=OneWay}" Width="{x:Bind CoverWidth, Mode=OneWay}" Height="{x:Bind CoverHeight, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border VerticalAlignment="Bottom" Background="#CC111315" Padding="12,5"><TextBlock Text="{x:Bind Platform}" FontSize="11" FontWeight="SemiBold" /></Border>
+                        <Button Tag="{x:Bind Entry}" Click="Favorite_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Padding="8" Background="#CC111315"
+                            ToolTipService.ToolTip="{x:Bind FavoriteLabel}" AutomationProperties.Name="{x:Bind FavoriteLabel}">
+                          <FontIcon Glyph="{x:Bind FavoriteGlyph}" FontSize="16" Foreground="{StaticResource AccentBrush}" />
+                        </Button>
+                      </Grid>
+                    </Border>
+                    <StackPanel Grid.Row="1" Padding="14" Spacing="10">
+                      <TextBlock Text="{x:Bind Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Name}" />
+                      <TextBlock Text="{x:Bind LastPlayed}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                      <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Button Tag="{x:Bind Entry}" Click="Play_Click" HorizontalAlignment="Stretch" Style="{StaticResource PrimaryButtonStyle}" Padding="12,8" AutomationProperties.Name="{x:Bind PlayLabel}">
+                          <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE768;" FontSize="12" /><TextBlock Text="Jogar" /></StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Padding="10,8" ToolTipService.ToolTip="Opções do jogo" AutomationProperties.Name="Opções do jogo">
+                          <FontIcon Glyph="&#xE712;" FontSize="16" />
+                          <Button.Flyout>
+                            <MenuFlyout>
+                              <MenuFlyoutItem Text="Editar jogo" Tag="{x:Bind Entry}" Click="Edit_Click" />
+                              <MenuFlyoutItem Text="Abrir pasta" Tag="{x:Bind Entry}" Click="OpenFolder_Click" />
+                              <MenuFlyoutSeparator />
+                              <MenuFlyoutItem Text="Remover da biblioteca" Tag="{x:Bind Entry}" Click="Remove_Click" />
+                            </MenuFlyout>
+                          </Button.Flyout>
+                        </Button>
+                      </Grid>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </GridView.ItemTemplate>
+          </GridView>
+          <StackPanel x:Name="EmptyState" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380" Spacing="16">
+            <Border Background="#22292A" CornerRadius="20" Padding="22" HorizontalAlignment="Center"><FontIcon Glyph="&#xE7FC;" FontSize="36" Foreground="{StaticResource AccentBrush}" /></Border>
+            <TextBlock x:Name="EmptyTitle" Text="Sua próxima partida começa aqui" FontSize="21" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock x:Name="EmptyDescription" Text="Detecte os jogos da Steam e Epic ou adicione um executável ou atalho." Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+        <Grid Grid.Row="4">
+          <TextBlock x:Name="CountLabel" Text="Carregando biblioteca…" FontSize="12" Foreground="{StaticResource MutedBrush}" />
+          <TextBlock Text="MCG / MVP 0.1" FontSize="11" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" />
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
