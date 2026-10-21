@@ -5,6 +5,7 @@ namespace MCG.Launcher.Core;
 public sealed record LauncherSettings
 {
     public bool ImagesDisabled { get; init; }
+    public string SteamGridDbApiKey { get; init; } = "";
 }
 
 public sealed class SettingsStore(string directory)

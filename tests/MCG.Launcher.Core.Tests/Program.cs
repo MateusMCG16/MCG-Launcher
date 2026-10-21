@@ -226,6 +226,78 @@ await Check("Merge: preenche imagens de jogos existentes e preserva favoritos", 
     var icon = original with { CoverPath = "icon.jpg", CoverPresentation = CoverPresentation.Icon };
     Equal(cover, LibraryRules.Merge([icon], [discovered]).Single().CoverPath);
 });
+await Check("Imagens locais: capa vertical da Steam vence o header", async () =>
+{
+    var root = Path.Combine(fixtures, "art-poster");
+    var appCache = Path.Combine(root, "appcache", "librarycache", "123");
+    Directory.CreateDirectory(appCache);
+    await File.WriteAllTextAsync(Path.Combine(appCache, "header.jpg"), "path fixture");
+    var poster = Path.Combine(appCache, "library_600x900.jpg");
+    await File.WriteAllTextAsync(poster, "path fixture");
+    var artwork = LocalArtwork.FindSteam(root, "123")!;
+    Equal(poster, artwork.Path);
+    Equal(CoverPresentation.Poster, artwork.Presentation);
+});
+await Check("Merge: capa vertical substitui header, capa personalizada nunca é trocada", async () =>
+{
+    var poster = Path.Combine(fixtures, "poster.jpg");
+    await File.WriteAllTextAsync(poster, "fixture");
+    var original = new GameEntry { Name = "Jogo", Source = GameSource.Steam, SourceId = "123", Target = "steam://rungameid/123", CoverPath = "header.jpg" };
+    var discovered = original with { Id = Guid.NewGuid(), CoverPath = poster, CoverPresentation = CoverPresentation.Poster };
+    Equal(poster, LibraryRules.Merge([original], [discovered]).Single().CoverPath);
+    var custom = original with { CoverPath = "minha.png", CoverPresentation = CoverPresentation.Custom };
+    Equal("minha.png", LibraryRules.Merge([custom], [discovered]).Single().CoverPath);
+});
+await Check("SteamGridDB primeiro: só capa baixada ou personalizada dispensa a busca", async () =>
+{
+    var covers = Path.Combine(fixtures, "covers-first");
+    Directory.CreateDirectory(covers);
+    var downloaded = Path.Combine(covers, "abc.png");
+    await File.WriteAllTextAsync(downloaded, "fixture");
+    var localPoster = Path.Combine(fixtures, "local-600x900.jpg");
+    await File.WriteAllTextAsync(localPoster, "fixture");
+    var game = new GameEntry { Name = "Jogo", Source = GameSource.Steam, SourceId = "123", Target = "steam://rungameid/123" };
+    True(LibraryRules.NeedsRemoteCover(game, covers));
+    True(LibraryRules.NeedsRemoteCover(game with { CoverPath = localPoster, CoverPresentation = CoverPresentation.Poster }, covers));
+    True(!LibraryRules.NeedsRemoteCover(game with { CoverPath = downloaded, CoverPresentation = CoverPresentation.Poster }, covers));
+    True(!LibraryRules.NeedsRemoteCover(game with { CoverPath = localPoster, CoverPresentation = CoverPresentation.Custom }, covers));
+    // A later local scan finds the Steam poster but keeps the SteamGridDB download.
+    var kept = game with { CoverPath = downloaded, CoverPresentation = CoverPresentation.Poster };
+    var scanned = game with { Id = Guid.NewGuid(), CoverPath = localPoster, CoverPresentation = CoverPresentation.Poster };
+    Equal(downloaded, LibraryRules.Merge([kept], [scanned]).Single().CoverPath);
+});
+await Check("SteamGridDB: usa o appid da Steam, envia a chave e baixa a capa", async () =>
+{
+    var requests = new List<HttpRequestMessage>();
+    var http = new HttpClient(new FakeHandler(request =>
+    {
+        requests.Add(request);
+        var path = request.RequestUri!.AbsolutePath;
+        if (path.EndsWith("/grids/steam/123")) return Json("{\"success\":true,\"data\":[{\"url\":\"https://cdn.example/grid.png\"}]}");
+        if (request.RequestUri.Host == "cdn.example")
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) { Headers = { ContentType = new("image/png") } } };
+        return new HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+    }));
+    var game = new GameEntry { Name = "Jogo", Source = GameSource.Steam, SourceId = "123", Target = "steam://rungameid/123" };
+    var saved = await new SteamGridDb(http, " chave ").DownloadPosterAsync(game, Path.Combine(fixtures, "covers"));
+    Equal(Path.Combine(fixtures, "covers", game.Id.ToString("N") + ".png"), saved);
+    Equal(3L, new FileInfo(saved!).Length);
+    Equal("chave", requests[0].Headers.Authorization!.Parameter);
+    True(requests[0].RequestUri!.Query.Contains("600x900"));
+});
+await Check("SteamGridDB: busca por nome e recusa chave inválida", async () =>
+{
+    var found = new HttpClient(new FakeHandler(request => request.RequestUri!.AbsolutePath switch
+    {
+        var p when p.Contains("/search/autocomplete/") => Json("{\"data\":[{\"id\":42,\"name\":\"Valorant\"}]}"),
+        var p when p.EndsWith("/grids/game/42") => Json("{\"data\":[{\"url\":\"https://cdn.example/v.jpg\"}]}"),
+        _ => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound)
+    }));
+    var epic = new GameEntry { Name = "VALORANT", Source = GameSource.Epic, SourceId = "x:y:z", Target = "com.epicgames.launcher://apps/x" };
+    Equal("https://cdn.example/v.jpg", await new SteamGridDb(found, "k").FindPosterUrlAsync(epic));
+    var denied = new HttpClient(new FakeHandler(_ => new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)));
+    await ThrowsAsync<SteamGridDbException>(() => new SteamGridDb(denied, "errada").FindPosterUrlAsync(epic));
+});
 
 await Check("Configurações: preferência persiste entre aberturas e pode ser reativada", async () =>
 {
@@ -273,4 +345,12 @@ static async Task ThrowsAsync<T>(Func<Task> action) where T : Exception
 {
     try { await action(); } catch (T) { return; }
     throw new Exception($"Esperava {typeof(T).Name}.");
+}
+static HttpResponseMessage Json(string body) =>
+    new(System.Net.HttpStatusCode.OK) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+
+sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+        Task.FromResult(respond(request));
 }

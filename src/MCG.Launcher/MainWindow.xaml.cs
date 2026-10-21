@@ -19,11 +19,14 @@ public sealed partial class MainWindow : Window
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MCGLauncher"));
     private readonly SettingsStore _settingsStore = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MCGLauncher"));
+    private static readonly string CoversDirectory = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MCGLauncher", "covers");
+    private static readonly HttpClient Http = SteamGridDb.CreateHttpClient();
+    private readonly HashSet<Guid> _remoteMisses = [];
     private LauncherSettings _settings = new();
     private bool _canWriteSettings;
     private List<GameEntry> _games = [];
     private readonly DispatcherQueueTimer _searchTimer;
-    private string _section = "library";
     private bool _ready;
     private bool _busy;
     private bool _canWrite;
@@ -42,7 +45,7 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonForegroundColor = Colors.White;
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.PreferredMinimumWidth = 1020;
+            presenter.PreferredMinimumWidth = 860;
             presenter.PreferredMinimumHeight = 620;
         }
         _searchTimer = DispatcherQueue.CreateTimer();
@@ -87,6 +90,46 @@ public sealed partial class MainWindow : Window
         else if (_canWrite && !_settings.ImagesDisabled && _games.Any(g => g.Source != GameSource.Manual
             && string.IsNullOrWhiteSpace(g.CoverPath) && string.IsNullOrWhiteSpace(g.IconPath)))
             await DetectAsync(imagesOnly: true);
+        await FetchRemoteCoversAsync(quiet: true);
+    }
+
+    // SteamGridDB is the first cover source. Downloads are kept in CoversDirectory and reused forever;
+    // games it does not know keep their local art (Steam poster, logo or icon) as the fallback.
+    private async Task FetchRemoteCoversAsync(bool quiet)
+    {
+        var key = _settings.SteamGridDbApiKey.Trim();
+        if (_busy || !_canWrite || _settings.ImagesDisabled || key.Length == 0) return;
+        // Games SteamGridDB did not know are asked again only on the next launch, not on every scan.
+        var missing = _games.Where(g => LibraryRules.NeedsRemoteCover(g, CoversDirectory) && !_remoteMisses.Contains(g.Id)).ToList();
+        if (missing.Count == 0) return;
+        SetBusy(true);
+        CountLabel.Text = $"Buscando capas no SteamGridDB para {missing.Count} jogo(s)…";
+        var found = new Dictionary<Guid, string>();
+        try
+        {
+            var client = new SteamGridDb(Http, key);
+            foreach (var game in missing)
+                if (await client.DownloadPosterAsync(game, CoversDirectory) is { } path) found[game.Id] = path;
+                else _remoteMisses.Add(game.Id);
+        }
+        catch (Exception error) when (error is SteamGridDbException or HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException)
+        {
+            Notify("Não foi possível buscar capas no SteamGridDB", SteamGridDb.Describe(error), InfoBarSeverity.Warning);
+        }
+        try
+        {
+            if (found.Count > 0)
+            {
+                var updated = _games.Select(g => found.TryGetValue(g.Id, out var path)
+                    ? g with { CoverPath = path, CoverPresentation = CoverPresentation.Poster } : g).ToList();
+                await _store.SaveAsync(updated);
+                _games = updated;
+                Notify("Capas do SteamGridDB adicionadas", $"{found.Count} jogo(s) receberam capa vertical.", InfoBarSeverity.Success);
+            }
+            else if (!quiet && !Notice.IsOpen) Notify("SteamGridDB", "Nenhuma capa nova encontrada. Os jogos restantes usam as imagens do PC.", InfoBarSeverity.Informational);
+        }
+        catch (Exception error) { Notify("Não foi possível salvar as capas", error.Message, InfoBarSeverity.Error); }
+        finally { SetBusy(false); Refresh(); }
     }
 
     private void SetBusy(bool busy)
@@ -104,15 +147,15 @@ public sealed partial class MainWindow : Window
     {
         if (!_ready) return;
         var search = LibraryRules.SearchKey(SearchBox.Text.Trim());
-        IEnumerable<GameEntry> filtered = _games;
-        if (_section == "favorites") filtered = filtered.Where(g => g.IsFavorite);
-        if (_section == "recent") filtered = filtered.Where(g => g.LastPlayedAt is not null);
-        filtered = SourceFilter.SelectedIndex switch
+        var filter = SourceFilter.SelectedIndex;
+        IEnumerable<GameEntry> filtered = filter switch
         {
-            1 => filtered.Where(g => g.Source == GameSource.Steam),
-            2 => filtered.Where(g => g.Source == GameSource.Epic),
-            3 => filtered.Where(g => g.Source == GameSource.Manual),
-            _ => filtered
+            1 => _games.Where(g => g.IsFavorite),
+            2 => _games.Where(g => g.LastPlayedAt is not null),
+            3 => _games.Where(g => g.Source == GameSource.Steam),
+            4 => _games.Where(g => g.Source == GameSource.Epic),
+            5 => _games.Where(g => g.Source == GameSource.Manual),
+            _ => _games
         };
         if (search.Length > 0) filtered = filtered.Where(g => LibraryRules.SearchKey(g.Name).Contains(search, StringComparison.Ordinal));
         var sorted = SortOrder.SelectedIndex switch
@@ -123,26 +166,14 @@ public sealed partial class MainWindow : Window
         };
         Cards.Clear();
         foreach (var game in sorted) Cards.Add(new GameCard(game, _settings.ImagesDisabled));
-        PageTitle.Text = _section switch { "favorites" => "Seus favoritos", "recent" => "Jogados recentemente", _ => "Sua biblioteca" };
-        PageSubtitle.Text = _section switch
-        {
-            "favorites" => "Os jogos que você quer ter sempre por perto.",
-            "recent" => "Continue de onde parou.",
-            _ => "Todos os seus jogos. Um lugar para começar."
-        };
-        var active = new SolidColorBrush(ColorHelper.FromArgb(255, 45, 55, 38));
-        var inactive = new SolidColorBrush(Colors.Transparent);
-        LibraryNav.Background = _section == "library" ? active : inactive;
-        FavoritesNav.Background = _section == "favorites" ? active : inactive;
-        RecentNav.Background = _section == "recent" ? active : inactive;
         CountLabel.Text = $"{Cards.Count} de {_games.Count} jogos · {_games.Count(g => g.IsFavorite)} favoritos";
         EmptyState.Visibility = Cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyTitle.Text = _games.Count == 0 ? "Sua próxima partida começa aqui" : "Nenhum jogo por aqui";
         EmptyDescription.Text = _games.Count == 0
             ? "Detecte os jogos da Steam e Epic ou adicione um executável ou atalho."
-            : _section == "favorites" && search.Length == 0 && SourceFilter.SelectedIndex == 0
+            : filter == 1 && search.Length == 0
                 ? "Marque a estrela de um jogo para encontrá-lo aqui."
-                : _section == "recent" && search.Length == 0 && SourceFilter.SelectedIndex == 0
+                : filter == 2 && search.Length == 0
                     ? "Os jogos abertos pelo launcher aparecem aqui."
                     : "Tente outro nome ou ajuste os filtros.";
     }
@@ -153,13 +184,15 @@ public sealed partial class MainWindow : Window
         _searchTimer.Stop();
         _searchTimer.Start();
     }
-    private void Filter_Changed(object sender, SelectionChangedEventArgs e) => Refresh();
-    private void Library_Click(object sender, RoutedEventArgs e) { _section = "library"; Refresh(); }
-    private void Favorites_Click(object sender, RoutedEventArgs e) { _section = "favorites"; Refresh(); }
-    private void Recent_Click(object sender, RoutedEventArgs e) { _section = "recent"; SortOrder.SelectedIndex = 1; Refresh(); }
+    private void Filter_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (ReferenceEquals(sender, SourceFilter) && SourceFilter.SelectedIndex == 2 && SortOrder.SelectedIndex != 1) SortOrder.SelectedIndex = 1;
+        else Refresh();
+    }
+    private void Library_Click(object sender, RoutedEventArgs e) { SearchBox.Text = ""; SourceFilter.SelectedIndex = 0; Refresh(); }
 
-    private async void Detect_Click(object sender, RoutedEventArgs e) => await DetectAsync();
-    private async void LocalImages_Click(object sender, RoutedEventArgs e) => await DetectAsync(imagesOnly: true);
+    private async void Detect_Click(object sender, RoutedEventArgs e) { await DetectAsync(); await FetchRemoteCoversAsync(quiet: true); }
+    private async void LocalImages_Click(object sender, RoutedEventArgs e) { await DetectAsync(imagesOnly: true); await FetchRemoteCoversAsync(quiet: false); }
     private async Task DetectAsync(bool imagesOnly = false)
     {
         if (_busy || !_canWrite) return;
@@ -295,20 +328,22 @@ public sealed partial class MainWindow : Window
         _dialogOpen = true;
         try
         {
-            var dialog = CreateSettingsDialog(out var imagesToggle);
+            var dialog = CreateSettingsDialog(out var imagesToggle, out var keyBox);
             if (_dialogCheckCompletion is not null && _dialogCheckReport is not null)
             {
-                await DialogDiagnostics.CheckSettingsAsync(dialog, _dialogCheckReport);
+                await DialogDiagnostics.CheckSettingsAsync(dialog, imagesToggle, _dialogCheckReport);
                 _dialogCheckCompletion.TrySetResult(true);
                 return;
             }
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary
-                || imagesToggle.IsOn == _settings.ImagesDisabled) return;
-            var updated = _settings with { ImagesDisabled = imagesToggle.IsOn };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+            var updated = _settings with { ImagesDisabled = imagesToggle.IsOn, SteamGridDbApiKey = keyBox.Password.Trim() };
+            if (updated == _settings) return;
             await _settingsStore.SaveAsync(updated);
             _settings = updated;
             SetBusy(_busy);
             Refresh();
+            _dialogOpen = false;
+            await FetchRemoteCoversAsync(quiet: false);
         }
         catch (Exception error)
         {
@@ -318,7 +353,7 @@ public sealed partial class MainWindow : Window
         finally { _dialogOpen = false; }
     }
 
-    private ContentDialog CreateSettingsDialog(out ToggleSwitch imagesToggle)
+    private ContentDialog CreateSettingsDialog(out ToggleSwitch imagesToggle, out PasswordBox keyBox)
     {
         imagesToggle = new ToggleSwitch
         {
@@ -327,11 +362,30 @@ public sealed partial class MainWindow : Window
             OnContent = "Ativado",
             OffContent = "Desativado"
         };
+        keyBox = new PasswordBox
+        {
+            Header = "Chave da API do SteamGridDB",
+            PlaceholderText = "Opcional",
+            Password = _settings.SteamGridDbApiKey,
+            Width = 360
+        };
+        var content = new StackPanel { Spacing = 20 };
+        content.Children.Add(imagesToggle);
+        var steamGrid = new StackPanel { Spacing = 6 };
+        steamGrid.Children.Add(keyBox);
+        steamGrid.Children.Add(new TextBlock
+        {
+            Text = "Usada só para jogos sem nenhuma imagem no PC. Cada usuário cria a própria chave, gratuita, no site do SteamGridDB.",
+            TextWrapping = TextWrapping.Wrap, MaxWidth = 360, FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["MutedBrush"]
+        });
+        steamGrid.Children.Add(new HyperlinkButton { Content = "Gerar minha chave", NavigateUri = new Uri(SteamGridDb.KeyPage), Padding = new Thickness(0, 4, 0, 4) });
+        content.Children.Add(steamGrid);
         return new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
             Title = "Configurações",
-            Content = imagesToggle,
+            Content = content,
             PrimaryButtonText = "Salvar",
             CloseButtonText = "Cancelar",
             DefaultButton = ContentDialogButton.Primary
@@ -359,3 +413,4 @@ public sealed partial class MainWindow : Window
     private void Notify(string title, string message, InfoBarSeverity severity)
     { Notice.Title = title; Notice.Message = message; Notice.Severity = severity; Notice.IsOpen = true; }
 }
+

@@ -10,9 +10,10 @@ public static class LocalArtwork
         var cache = Path.Combine(steamRoot, "appcache", "librarycache");
         var appCache = Path.Combine(cache, appId);
         // Steam now keeps assets inside a directory per app. Earlier clients used flat names.
-        foreach (var name in new[] { "header.jpg", "library_hero.jpg", "library_hero_2x.jpg", "library_600x900.jpg", "library_600x900_2x.jpg" })
+        // The vertical library capsule matches the card format, so it wins over the horizontal header and hero.
+        foreach (var name in new[] { "library_600x900_2x.jpg", "library_600x900.jpg", "header.jpg", "library_hero.jpg", "library_hero_2x.jpg" })
             foreach (var path in new[] { Path.Combine(appCache, name), Path.Combine(cache, $"{appId}_{name}") })
-                if (File.Exists(path)) return new(path, CoverPresentation.Artwork);
+                if (File.Exists(path)) return new(path, name.StartsWith("library_600x900", StringComparison.Ordinal) ? CoverPresentation.Poster : CoverPresentation.Artwork);
         foreach (var path in new[] { Path.Combine(appCache, "logo.png"), Path.Combine(cache, $"{appId}_logo.png") })
             if (File.Exists(path)) return new(path, CoverPresentation.Logo);
         // Hashed JPGs in this directory are often small app icons, not cover art.

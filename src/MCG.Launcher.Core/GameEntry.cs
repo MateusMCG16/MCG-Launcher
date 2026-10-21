@@ -6,7 +6,9 @@ namespace MCG.Launcher.Core;
 
 public enum GameSource { Manual, Steam, Epic }
 public enum LaunchKind { Executable, Shortcut, Protocol }
-public enum CoverPresentation { Artwork, Logo, Icon }
+// Poster: vertical 2:3 art (Steam library_600x900 or SteamGridDB). Custom: chosen by the user, never replaced.
+// New values go at the end because the library stores the numeric value.
+public enum CoverPresentation { Artwork, Logo, Icon, Poster, Custom }
 
 public sealed record GameEntry
 {
@@ -33,6 +35,7 @@ public sealed record GameEntry
 
 public static class LibraryRules
 {
+    // A SteamGridDB download is stored as Poster; local discovery has the same rank at best, so it never replaces it.
     public static List<GameEntry> Merge(IEnumerable<GameEntry> existing, IEnumerable<GameEntry> discovered)
     {
         var games = existing.ToList();
@@ -48,7 +51,7 @@ public static class LibraryRules
             {
                 var original = games[index];
                 var fillCover = (string.IsNullOrWhiteSpace(original.CoverPath)
-                    || (original.CoverPresentation != CoverPresentation.Artwork && game.CoverPresentation == CoverPresentation.Artwork))
+                    || CoverRank(game.CoverPresentation) > CoverRank(original.CoverPresentation))
                     && File.Exists(game.CoverPath);
                 var fillIcon = string.IsNullOrWhiteSpace(original.IconPath) && File.Exists(game.IconPath);
                 games[index] = original with
@@ -65,6 +68,25 @@ public static class LibraryRules
         }
         return games;
     }
+
+    public static int CoverRank(CoverPresentation presentation) => presentation switch
+    {
+        CoverPresentation.Custom => 4,
+        CoverPresentation.Poster => 3,
+        CoverPresentation.Artwork => 2,
+        CoverPresentation.Logo => 1,
+        _ => 0
+    };
+
+    // SteamGridDB is the first source: every game asks it once, unless the user chose a cover or a downloaded
+    // one is already kept in the covers directory. Local art (Steam poster, logo, icon) is the fallback.
+    public static bool NeedsRemoteCover(GameEntry game, string coversDirectory) =>
+        game.CoverPresentation != CoverPresentation.Custom && !IsDownloadedCover(game, coversDirectory);
+
+    public static bool IsDownloadedCover(GameEntry game, string coversDirectory) =>
+        !string.IsNullOrWhiteSpace(game.CoverPath) && File.Exists(game.CoverPath)
+        && Path.GetFullPath(game.CoverPath).StartsWith(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(coversDirectory)) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 
     public static string SearchKey(string value)
     {

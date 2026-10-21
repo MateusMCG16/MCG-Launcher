@@ -6,27 +6,97 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries><controls:XamlControlsResources /></ResourceDictionary.MergedDictionaries>
-      <Color x:Key="SystemAccentColor">#A9E966</Color>
-      <SolidColorBrush x:Key="AccentBrush" Color="#A9E966" />
-      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#111315" />
-      <SolidColorBrush x:Key="PanelBrush" Color="#191C1F" />
-      <SolidColorBrush x:Key="MutedBrush" Color="#A1A7AE" />
-      <SolidColorBrush x:Key="DividerBrush" Color="#30353B" />
-      <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Foreground" Value="#14200B" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="16,10" />
+      <!-- Paleta: #E5E5E5 · #FCA311 · #14213D · #000000 (demais tons são derivações) -->
+      <Color x:Key="SystemAccentColor">#FCA311</Color>
+      <SolidColorBrush x:Key="AccentBrush" Color="#FCA311" />
+      <SolidColorBrush x:Key="OnAccentBrush" Color="#000000" />
+      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#000000" />
+      <SolidColorBrush x:Key="PanelBrush" Color="#14213D" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#1C2C4F" />
+      <SolidColorBrush x:Key="InkBrush" Color="#E5E5E5" />
+      <SolidColorBrush x:Key="MutedBrush" Color="#A6E5E5E5" />
+      <SolidColorBrush x:Key="DividerBrush" Color="#2A3B63" />
+      <SolidColorBrush x:Key="SelectedBrush" Color="#FCA311" />
+      <LinearGradientBrush x:Key="CoverShadeBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#00000000" Offset="0" />
+        <GradientStop Color="#B3000000" Offset="0.45" />
+        <GradientStop Color="#F2000000" Offset="1" />
+      </LinearGradientBrush>
+      <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable" />
+        <Setter Property="FontSize" Value="14" />
       </Style>
-      <Style x:Key="SidebarButtonStyle" TargetType="Button">
+      <Style x:Key="LauncherButtonStyle" TargetType="Button">
+        <Setter Property="FontFamily" Value="Segoe UI Variable" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{StaticResource RaisedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Grid x:Name="ButtonRoot" Background="Transparent">
+                <VisualStateManager.VisualStateGroups>
+                  <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal"><Storyboard><PointerUpThemeAnimation TargetName="ButtonFrame" /></Storyboard></VisualState>
+                    <VisualState x:Name="PointerOver">
+                      <VisualState.Setters>
+                        <Setter Target="ButtonFrame.BorderBrush" Value="{StaticResource AccentBrush}" />
+                        <Setter Target="LabelShift.X" Value="3" />
+                      </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Pressed">
+                      <VisualState.Setters><Setter Target="LabelShift.X" Value="1" /></VisualState.Setters>
+                      <Storyboard><PointerDownThemeAnimation TargetName="ButtonFrame" /></Storyboard>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                      <VisualState.Setters><Setter Target="ButtonFrame.Opacity" Value="0.45" /></VisualState.Setters>
+                    </VisualState>
+                  </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Border x:Name="ButtonFrame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+                  <ContentPresenter Foreground="{TemplateBinding Foreground}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                    <ContentPresenter.RenderTransform><TranslateTransform x:Name="LabelShift" /></ContentPresenter.RenderTransform>
+                  </ContentPresenter>
+                </Border>
+              </Grid>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style TargetType="Button" BasedOn="{StaticResource LauncherButtonStyle}" />
+      <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource LauncherButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource OnAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+      </Style>
+      <Style x:Key="SidebarButtonStyle" TargetType="Button" BasedOn="{StaticResource LauncherButtonStyle}">
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="MinHeight" Value="52" />
       </Style>
     </ResourceDictionary>
   </Application.Resources>
 </Application>
+
+
+

@@ -114,7 +114,7 @@ internal sealed class GameEditorDialog : ContentDialog
             {
                 Name = name, Target = target, CoverPath = cover,
                 CoverPresentation = string.Equals(cover, _original?.CoverPath, StringComparison.OrdinalIgnoreCase)
-                    ? _original!.CoverPresentation : CoverPresentation.Artwork,
+                    ? _original!.CoverPresentation : cover.Length > 0 ? CoverPresentation.Custom : CoverPresentation.Artwork,
                 IconPath = imported ? _original!.IconPath : target,
                 LaunchKind = imported ? _original!.LaunchKind
                     : Path.GetExtension(target).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? LaunchKind.Shortcut : LaunchKind.Executable,

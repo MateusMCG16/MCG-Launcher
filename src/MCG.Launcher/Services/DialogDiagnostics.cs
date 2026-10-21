@@ -23,7 +23,7 @@ internal static class DialogDiagnostics
     }
 
     // Exercise the real WinUI dialog without changing the user's settings or starting games.
-    public static async Task CheckSettingsAsync(ContentDialog dialog, string reportPath)
+    public static async Task CheckSettingsAsync(ContentDialog dialog, ToggleSwitch toggle, string reportPath)
     {
         var opened = false;
         var rendered = false;
@@ -37,7 +37,6 @@ internal static class DialogDiagnostics
             opened = true;
             dialog.DispatcherQueue.TryEnqueue(() =>
             {
-                var toggle = dialog.Content as ToggleSwitch;
                 rendered = dialog.Template is not null && toggle is { ActualWidth: > 0, ActualHeight: > 0 };
                 if (!rendered) error = "O modal abriu sem renderizar a opção.";
                 dialog.Hide();
