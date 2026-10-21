@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- MCG Launcher logo: two overlapping M on a two-tone navy squircle. Source for tools/RenderAppIcon.ps1. -->
+  <defs><clipPath id="tile"><rect x="4" y="4" width="92" height="92" rx="22"/></clipPath></defs>
+  <rect x="4" y="4" width="92" height="92" rx="22" fill="#14213D"/>
+  <polygon clip-path="url(#tile)" fill="#1C2C4F" points="4,96 96,4 96,96"/>
+  <g transform="translate(-3,-4) skewX(-10) translate(12,6) scale(0.88)"><polygon fill="#E5E5E5" fill-opacity="0.4" points="22,78 22,26 36,26 50,50 64,26 78,26 78,78 66,78 66,46 54,66 46,66 34,46 34,78"/></g>
+  <g transform="translate(4,4) skewX(-10) translate(12,6) scale(0.88)"><polygon fill="#E5E5E5" points="22,78 22,26 36,26 50,50 64,26 78,26 78,78 66,78 66,46 54,66 46,66 34,46 34,78"/></g>
+</svg>

@@ -38,9 +38,30 @@
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <StackPanel Spacing="12">
             <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,0,0,10">
-              <Border Width="30" Height="30" CornerRadius="8" Background="{StaticResource AccentBrush}">
-                <FontIcon Glyph="&#xE7FC;" FontSize="16" Foreground="{StaticResource OnAccentBrush}" />
-              </Border>
+              <!-- Same geometry as Assets/AppIcon.svg (100 × 100), drawn as vectors so it stays crisp. -->
+              <Viewbox Width="38" Height="38" AutomationProperties.AccessibilityView="Raw">
+                <Canvas Width="100" Height="100">
+                  <!-- Hard gradient stop = the diagonal two-tone split, already clipped by the rounded corners.
+                       The stroke separates the tile from the sidebar, which uses the same navy. -->
+                  <Rectangle Canvas.Left="4" Canvas.Top="4" Width="92" Height="92" RadiusX="22" RadiusY="22" Stroke="#3A4D7A" StrokeThickness="3">
+                    <Rectangle.Fill>
+                      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#14213D" Offset="0.5" /><GradientStop Color="#1C2C4F" Offset="0.5" />
+                      </LinearGradientBrush>
+                    </Rectangle.Fill>
+                  </Rectangle>
+                  <Polygon Points="22,78 22,26 36,26 50,50 64,26 78,26 78,78 66,78 66,46 54,66 46,66 34,46 34,78" Fill="#E5E5E5" Opacity="0.4">
+                    <Polygon.RenderTransform>
+                      <TransformGroup><ScaleTransform ScaleX="0.88" ScaleY="0.88" /><TranslateTransform X="12" Y="6" /><SkewTransform AngleX="-10" /><TranslateTransform X="-3" Y="-4" /></TransformGroup>
+                    </Polygon.RenderTransform>
+                  </Polygon>
+                  <Polygon Points="22,78 22,26 36,26 50,50 64,26 78,26 78,78 66,78 66,46 54,66 46,66 34,46 34,78" Fill="#E5E5E5">
+                    <Polygon.RenderTransform>
+                      <TransformGroup><ScaleTransform ScaleX="0.88" ScaleY="0.88" /><TranslateTransform X="12" Y="6" /><SkewTransform AngleX="-10" /><TranslateTransform X="4" Y="4" /></TransformGroup>
+                    </Polygon.RenderTransform>
+                  </Polygon>
+                </Canvas>
+              </Viewbox>
               <TextBlock Text="MCG" FontSize="15" FontWeight="Bold" CharacterSpacing="140" VerticalAlignment="Center" />
             </StackPanel>
             <Button x:Name="LibraryNav" Style="{StaticResource SidebarButtonStyle}" Click="Library_Click"

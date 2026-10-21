@@ -7,6 +7,7 @@
     <RootNamespace>MCG.Launcher</RootNamespace>
     <AssemblyName>MCG.Launcher</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -23,6 +24,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
+    <!-- Regenerate with tools/RenderAppIcon.ps1 after editing Assets/AppIcon.svg. -->
+    <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../MCG.Launcher.Core/MCG.Launcher.Core.csproj" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.9169" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
